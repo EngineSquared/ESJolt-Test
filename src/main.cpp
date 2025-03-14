@@ -72,21 +72,29 @@ public:
 	}
 };
 
+bool SphereIsActive(ES::Engine::Core &core, const ES::Engine::Entity &sphereEntity)
+{
+	auto &rigidBody = core.GetRegistry().get<ES::Plugin::Physics::Component::RigidBody3D>(sphereEntity);
+
+	auto &physicsManager = core.GetResource<ES::Plugin::Physics::Resource::PhysicsManager>();
+	auto &physicsSystem = physicsManager.GetPhysicsSystem();
+	auto &bodyInterface = physicsSystem.GetBodyInterface();
+
+	if (rigidBody.body == nullptr)
+	{
+		return true; // Needs initialization so we want to run
+	}
+
+	return bodyInterface.IsActive(rigidBody.body->GetID());
+}
+
 int main(void)
 {
     ES::Engine::Core core;
 
     core.RegisterResource<Resource::PhysicsManager>(std::move(Resource::PhysicsManager()));
 
-    auto &physics_manager = core.GetResource<Resource::PhysicsManager>();
-
 	core.RegisterSystem(ES::Plugin::Physics::System::PhysicsUpdate);
-
-    auto &physics_system = physics_manager.GetPhysicsSystem();
-
-    // The main way to interact with the bodies in the physics system is through the body interface. There is a locking and a non-locking
-	// variant of this. We're going to use the locking version (even though we're not planning to access bodies from multiple threads)
-	BodyInterface &body_interface = physics_system.GetBodyInterface();
 
 	// Next we can create a rigid body to serve as the floor, we make a large box
 	// Create the settings for the collision volume (the shape).
@@ -113,16 +121,16 @@ int main(void)
 	// Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance (it's pointless here because we only have 2 bodies).
 	// You should definitely not call this every frame or when e.g. streaming in a new level section as it is an expensive operation.
 	// Instead insert all new objects in batches instead of 1 at a time to keep the broad phase efficient.
-	physics_system.OptimizeBroadPhase();
+	core.GetResource<Resource::PhysicsManager>().GetPhysicsSystem().OptimizeBroadPhase();
 
 	// Now we're ready to simulate the body, keep simulating until it goes to sleep
-	while (true)
+	while (SphereIsActive(core, sphere))
 	{
 		// Step the world
 		core.RunSystems();
 
 		// Simulate a framerate of 60 Hz
-		std::this_thread::sleep_for(std::chrono::duration<float>(1/60.0f));
+		std::this_thread::sleep_for(std::chrono::duration<float>(1/240.0f));
 	}
 
     return 0;
