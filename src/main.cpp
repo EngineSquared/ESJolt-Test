@@ -1,4 +1,6 @@
 #include "Core.hpp"
+#include "Entity.hpp"
+#include "Transform.hpp"
 #include "JoltPhysics.hpp"
 
 #include <iostream>
@@ -28,10 +30,9 @@ int main(void)
 
     auto &physics_manager = core.GetResource<Resource::PhysicsManager>();
 
+	core.RegisterSystem(ES::Plugin::Physics::System::PhysicsUpdate);
+
     auto &physics_system = physics_manager.GetPhysicsSystem();
-
-
-    // -- Example copy/pasted from Jolt Physics samples --
 
     // The main way to interact with the bodies in the physics system is through the body interface. There is a locking and a non-locking
 	// variant of this. We're going to use the locking version (even though we're not planning to access bodies from multiple threads)
@@ -40,21 +41,12 @@ int main(void)
 	// Next we can create a rigid body to serve as the floor, we make a large box
 	// Create the settings for the collision volume (the shape).
 	// Note that for simple shapes (like boxes) you can also directly construct a BoxShape.
-	BoxShapeSettings floor_shape_settings(Vec3(100.0f, 1.0f, 100.0f));
-	floor_shape_settings.SetEmbedded(); // A ref counted object on the stack (base class RefTarget) should be marked as such to prevent it from being freed when its reference count goes to 0.
-
+	std::shared_ptr<BoxShapeSettings> floor_shape_settings = std::make_shared<BoxShapeSettings>(Vec3(100.0f, 1.0f, 100.0f));
+	
 	// Create the shape
-	ShapeSettings::ShapeResult floor_shape_result = floor_shape_settings.Create();
-	ShapeRefC floor_shape = floor_shape_result.Get(); // We don't expect an error here, but you can check floor_shape_result for HasError() / GetError()
-
-	// Create the settings for the body itself. Note that here you can also set other properties like the restitution / friction.
-	BodyCreationSettings floor_settings(floor_shape, RVec3(0.0_r, -1.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Static, Utils::Layers::NON_MOVING);
-
-	// Create the actual rigid body
-	Body *floor = body_interface.CreateBody(floor_settings); // Note that if we run out of bodies this can return nullptr
-
-	// Add it to the world
-	body_interface.AddBody(floor->GetID(), EActivation::DontActivate);
+	ES::Engine::Entity floor = core.CreateEntity();
+	floor.AddComponent<ES::Plugin::Object::Component::Transform>(core, ES::Plugin::Object::Component::Transform({0.0f, -1.0f, 0.0f}));
+	floor.AddComponent<ES::Plugin::Physics::Component::RigidBody3D>(core, ES::Plugin::Physics::Component::RigidBody3D(floor_shape_settings, EMotionType::Static, Utils::Layers::NON_MOVING));
 
 	// Now create a dynamic body to bounce on the floor
 	// Note that this uses the shorthand version of creating and adding a body to the world
@@ -89,7 +81,10 @@ int main(void)
 		const int cCollisionSteps = 1;
 
 		// Step the world
-		physics_system.Update(cDeltaTime, cCollisionSteps, physics_manager.GetTempAllocator(), physics_manager.GetJobSystem());
+		core.RunSystems();
+
+		// Simulate a framerate of 60 Hz
+		std::this_thread::sleep_for(std::chrono::duration<float>(1/60.0f));
 	}
 
 	// Remove the sphere from the physics system. Note that the sphere itself keeps all of its state and can be re-added at any time.
@@ -97,10 +92,6 @@ int main(void)
 
 	// Destroy the sphere. After this the sphere ID is no longer valid.
 	body_interface.DestroyBody(sphere_id);
-
-	// Remove and destroy the floor
-	body_interface.RemoveBody(floor->GetID());
-	body_interface.DestroyBody(floor->GetID());
 
     return 0;
 }
