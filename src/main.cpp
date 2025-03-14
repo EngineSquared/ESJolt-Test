@@ -209,7 +209,7 @@ ES::Engine::Entity CreateFloor(ES::Engine::Core &core)
 	glm::vec3 floor_scale = glm::vec3(1.0f, 1.0f, 1.0f);
 
 	// Rotated slightly in a 12° angle, so that the sphere will roll on it
-	glm::quat floor_rotation = glm::rotate(glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::radians(12.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	glm::quat floor_rotation = glm::rotate(glm::quat(0.0f, 0.0f, 0.0f, 1.0f), glm::radians(12.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
 	Vec3 floor_size = Vec3(10.0f, 1.0f, 10.0f);
 
@@ -370,6 +370,7 @@ int main(void)
 	core.GetResource<Physics::Resource::PhysicsManager>().GetPhysicsSystem().OptimizeBroadPhase();
 
 	// Now we're ready to simulate the body
+	core.GetResource<Physics::Resource::PhysicsManager>().SetCollisionSteps(10);
 	while (!glfwWindowShouldClose(core.GetResource<OpenGL::Resource::GLFWWindow>().window)) {
         core.RunSystems();
     }
