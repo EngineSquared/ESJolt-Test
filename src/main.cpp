@@ -2,6 +2,8 @@
 #include "Engine.hpp"
 #include "Entity.hpp"
 #include "Transform.hpp"
+
+#define ES_PHYSICS_DEBUG_RENDERERS
 #include "JoltPhysics.hpp"
 #include "OpenGL.hpp"
 
@@ -122,6 +124,9 @@ void SetupOpenGL(ES::Engine::Core &core)
     core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::SetupCamera);
     core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::SetupLights);
     core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::RenderMeshes);
+
+	core.RegisterSystem<ES::Engine::Scheduler::Update>(ES::Plugin::Physics::System::RigidBodyRenderer);
+
     core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::SwapBuffers);
     core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::PollEvents);
     core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::MouseDragging);
@@ -199,14 +204,15 @@ ES::Engine::Entity CreateSphere(ES::Engine::Core &core)
 
     model.mesh = mesh;
 
-    sphere.AddComponent<OpenGL::Component::Model>(core, model);
+    // sphere.AddComponent<OpenGL::Component::Model>(core, model);
+	// commented to test renderer
 
 	return sphere;
 }
 
 ES::Engine::Entity CreateFloor(ES::Engine::Core &core)
 {
-	glm::vec3 floor_position = glm::vec3(0.0f, -3.0f, 0.0f);
+	glm::vec3 floor_position = glm::vec3(0.0f, -8.0f, 0.0f);
 	glm::vec3 floor_scale = glm::vec3(1.0f, 1.0f, 1.0f);
 
 	// Rotated slightly in a 12° angle, so that the sphere will roll on it
@@ -216,7 +222,7 @@ ES::Engine::Entity CreateFloor(ES::Engine::Core &core)
 
 	std::shared_ptr<BoxShapeSettings> floor_shape_settings = std::make_shared<BoxShapeSettings>(floor_size);
 	ES::Engine::Entity floor = core.CreateEntity();
-	
+
 	floor.AddComponent<ES::Plugin::Object::Component::Transform>(core, ES::Plugin::Object::Component::Transform(floor_position, floor_scale, floor_rotation));
 	floor.AddComponent<ES::Plugin::Physics::Component::RigidBody3D>(core, ES::Plugin::Physics::Component::RigidBody3D(floor_shape_settings, EMotionType::Static, Physics::Utils::Layers::NON_MOVING));
 
@@ -339,7 +345,7 @@ ES::Engine::Entity CreateFloor(ES::Engine::Core &core)
 
     model.mesh = mesh;
 
-    floor.AddComponent<OpenGL::Component::Model>(core, model);
+    // floor.AddComponent<OpenGL::Component::Model>(core, model);
 
 	return floor;
 }
