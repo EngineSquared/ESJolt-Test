@@ -3,6 +3,7 @@
 #include "Entity.hpp"
 #include "Transform.hpp"
 #include "Startup.hpp"
+#include "Window.hpp"
 
 #define ES_PHYSICS_DEBUG_RENDERERS
 #include "JoltPhysics.hpp"
@@ -92,45 +93,6 @@ bool SphereIsActive(ES::Engine::Core &core, const ES::Engine::Entity &sphereEnti
 	}
 
 	return bodyInterface.IsActive(rigidBody.body->GetID());
-}
-
-void SetupOpenGL(ES::Engine::Core &core)
-{
-	core.RegisterResource<OpenGL::Resource::Buttons>({});
-
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::InitGLFW);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::SetupGLFWHints);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::CreateGLFWWindow);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::LinkGLFWContextToGL);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::InitGLEW);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::CheckGLEWVersion);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::GLFWEnableVSync);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::SetupGLFWHints);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::LoadMaterialCache);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::LoadShaderManager);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::CreateCamera);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::SetupShaderUniforms);
-
-    core.RunSystems();
-
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::UpdateKey);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::UpdatePosCursor);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::UpdateButton);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::SaveLastMousePos);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::UpdateMatrices);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::GLClearColor);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::GLClearDepth);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::GLEnableDepth);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::GLEnableCullFace);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::SetupCamera);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::SetupLights);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::RenderMeshes);
-
-	core.RegisterSystem<ES::Engine::Scheduler::Update>(ES::Plugin::Physics::System::RigidBodyRenderer);
-
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::SwapBuffers);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::PollEvents);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::MouseDragging);
 }
 
 ES::Engine::Entity CreateSphere(ES::Engine::Core &core)
@@ -296,8 +258,9 @@ int main(void)
 {
     ES::Engine::Core core;
 
-	SetupOpenGL(core);
+	core.AddPlugins<ES::Plugin::OpenGL::Plugin>();
 
+	core.RegisterSystem<ES::Engine::Scheduler::Update>(ES::Plugin::Physics::System::RigidBodyRenderer);
     core.RegisterResource<Physics::Resource::PhysicsManager>(std::move(Physics::Resource::PhysicsManager()));
 
 	core.RegisterSystem<ES::Engine::Scheduler::Update>(ES::Plugin::Physics::System::PhysicsUpdate);
@@ -322,11 +285,10 @@ int main(void)
 
 	// Now we're ready to simulate the body
 	core.GetResource<Physics::Resource::PhysicsManager>().SetCollisionSteps(10);
-	while (!glfwWindowShouldClose(core.GetResource<OpenGL::Resource::GLFWWindow>().window)) {
-        core.RunSystems();
-    }
 
-    glfwDestroyWindow(core.GetResource<OpenGL::Resource::GLFWWindow>().window);
+    core.RunCore();
+
+    glfwDestroyWindow(core.GetResource<ES::Plugin::Window::Resource::Window>().GetGLFWWindow());
     glfwTerminate();
 
     return 0;
