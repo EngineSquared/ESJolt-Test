@@ -112,25 +112,25 @@ ES::Engine::Entity CreateSphere(ES::Engine::Core &core)
 	OpenGL::Component::Model model;
 
 	model.shaderName = "default";
-    model.materialName = "default";
+	model.materialName = "default";
 	model.meshName = "default";
 
     ES::Plugin::Object::Component::Mesh mesh;
 
 	// Generate a sphere
-	const int numSegments = 16;
-	const int numRings = 16;
+	const uint32_t numSegments = 16;
+	const uint32_t numRings = 16;
 
 	mesh.vertices.reserve(numSegments * numRings + 2); // +2 for the poles
-    mesh.indices.reserve(numSegments * numRings * 6); // 6 indices per quad
+	mesh.indices.reserve(numSegments * numRings * 6); // 6 indices per quad
 
 	// Generate vertices and normals
 	const float pi = glm::pi<float>();
 
-	for (int i = 0; i <= numRings; ++i) {
+	for (uint32_t i = 0; i <= numRings; ++i) {
 		float phi = pi * (static_cast<float>(i) / numRings); // Latitude angle from 0 to pi
 
-		for (int j = 0; j <= numSegments; ++j) {
+		for (uint32_t j = 0; j <= numSegments; ++j) {
 			float theta = 2.0f * pi * (static_cast<float>(j) / numSegments); // Longitude angle from 0 to 2*pi
 
 			// Spherical coordinates
@@ -143,12 +143,12 @@ ES::Engine::Entity CreateSphere(ES::Engine::Core &core)
 	}
 
 	// Generate indices for triangle strips
-	for (int i = 0; i < numRings; ++i) {
-		for (int j = 0; j < numSegments; ++j) {
-			unsigned int i0 = i * (numSegments + 1) + j;
-			unsigned int i1 = (i + 1) * (numSegments + 1) + j;
-			unsigned int i2 = (i + 1) * (numSegments + 1) + (j + 1);
-			unsigned int i3 = i * (numSegments + 1) + (j + 1);
+	for (uint32_t i = 0; i < numRings; ++i) {
+		for (uint32_t j = 0; j < numSegments; ++j) {
+			uint32_t i0 = i * (numSegments + 1) + j;
+			uint32_t i1 = (i + 1) * (numSegments + 1) + j;
+			uint32_t i2 = (i + 1) * (numSegments + 1) + (j + 1);
+			uint32_t i3 = i * (numSegments + 1) + (j + 1);
 
 			// First triangle
 			mesh.indices.insert(mesh.indices.end(), {i0, i1, i2, i0, i2, i3});
@@ -181,7 +181,7 @@ ES::Engine::Entity CreateFloor(ES::Engine::Core &core)
 	OpenGL::Component::Model model;
 
 	model.shaderName = "default";
-    model.materialName = "default";
+	model.materialName = "default";
 	model.meshName = "default";
 
     ES::Plugin::Object::Component::Mesh mesh;
