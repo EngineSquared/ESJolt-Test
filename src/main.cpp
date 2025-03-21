@@ -122,6 +122,7 @@ ES::Engine::Entity CreateSphere(ES::Engine::Core &core)
 	const uint32_t numRings = 16;
 
 	mesh.vertices.reserve(numSegments * numRings + 2); // +2 for the poles
+	mesh.normals.reserve(numSegments * numRings + 2); // +2 for the poles
 	mesh.indices.reserve(numSegments * numRings * 6); // 6 indices per quad
 
 	// Generate vertices and normals
@@ -138,7 +139,8 @@ ES::Engine::Entity CreateSphere(ES::Engine::Core &core)
 			float y = radius * cos(phi);
 			float z = radius * sin(phi) * sin(theta);
 
-			mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(glm::vec3(x, y, z), glm::normalize(glm::vec3(x, y, z))));
+			mesh.vertices.emplace_back(glm::vec3(x, y, z));
+			mesh.normals.emplace_back(glm::normalize(glm::vec3(x, y, z)));
 		}
 	}
 
@@ -187,6 +189,7 @@ ES::Engine::Entity CreateFloor(ES::Engine::Core &core)
     ES::Plugin::Object::Component::Mesh mesh;
 
 	mesh.vertices.reserve(24);
+	mesh.normals.reserve(24);
 	mesh.indices.reserve(36);
 
 	// Generate a box
@@ -205,40 +208,70 @@ ES::Engine::Entity CreateFloor(ES::Engine::Core &core)
 	const glm::vec3 back_top_right = glm::vec3(width, height, depth);
 
 	// Front face
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(front_bottom_left, glm::vec3(0.0f, 0.0f, -1.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(front_bottom_right, glm::vec3(0.0f, 0.0f, -1.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(front_top_left, glm::vec3(0.0f, 0.0f, -1.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(front_top_right, glm::vec3(0.0f, 0.0f, -1.0f)));
+	mesh.vertices.emplace_back(front_bottom_left);
+	mesh.vertices.emplace_back(front_bottom_right);
+	mesh.vertices.emplace_back(front_top_left);
+	mesh.vertices.emplace_back(front_top_right);
+
+	mesh.normals.emplace_back(glm::vec3(0.0f, 0.0f, -1.0f));
+	mesh.normals.emplace_back(glm::vec3(0.0f, 0.0f, -1.0f));
+	mesh.normals.emplace_back(glm::vec3(0.0f, 0.0f, -1.0f));
+	mesh.normals.emplace_back(glm::vec3(0.0f, 0.0f, -1.0f));
 
 	// Back face
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(back_bottom_left, glm::vec3(0.0f, 0.0f, 1.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(back_bottom_right, glm::vec3(0.0f, 0.0f, 1.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(back_top_left, glm::vec3(0.0f, 0.0f, 1.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(back_top_right, glm::vec3(0.0f, 0.0f, 1.0f)));
+	mesh.vertices.emplace_back(back_bottom_left);
+	mesh.vertices.emplace_back(back_bottom_right);
+	mesh.vertices.emplace_back(back_top_left);
+	mesh.vertices.emplace_back(back_top_right);
+
+	mesh.normals.emplace_back(glm::vec3(0.0f, 0.0f, 1.0f));
+	mesh.normals.emplace_back(glm::vec3(0.0f, 0.0f, 1.0f));
+	mesh.normals.emplace_back(glm::vec3(0.0f, 0.0f, 1.0f));
+	mesh.normals.emplace_back(glm::vec3(0.0f, 0.0f, 1.0f));
 
 	// Top face
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(front_top_left, glm::vec3(0.0f, 1.0f, 0.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(front_top_right, glm::vec3(0.0f, 1.0f, 0.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(back_top_left, glm::vec3(0.0f, 1.0f, 0.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(back_top_right, glm::vec3(0.0f, 1.0f, 0.0f)));
+	mesh.vertices.emplace_back(front_top_left);
+	mesh.vertices.emplace_back(front_top_right);
+	mesh.vertices.emplace_back(back_top_left);
+	mesh.vertices.emplace_back(back_top_right);
+
+	mesh.normals.emplace_back(glm::vec3(0.0f, 1.0f, 0.0f));
+	mesh.normals.emplace_back(glm::vec3(0.0f, 1.0f, 0.0f));
+	mesh.normals.emplace_back(glm::vec3(0.0f, 1.0f, 0.0f));
+	mesh.normals.emplace_back(glm::vec3(0.0f, 1.0f, 0.0f));
 
 	// Bottom face
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(front_bottom_left, glm::vec3(0.0f, -1.0f, 0.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(front_bottom_right, glm::vec3(0.0f, -1.0f, 0.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(back_bottom_left, glm::vec3(0.0f, -1.0f, 0.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(back_bottom_right, glm::vec3(0.0f, -1.0f, 0.0f)));
+	mesh.vertices.emplace_back(front_bottom_left);
+	mesh.vertices.emplace_back(front_bottom_right);
+	mesh.vertices.emplace_back(back_bottom_left);
+	mesh.vertices.emplace_back(back_bottom_right);
+
+	mesh.normals.emplace_back(glm::vec3(0.0f, -1.0f, 0.0f));
+	mesh.normals.emplace_back(glm::vec3(0.0f, -1.0f, 0.0f));
+	mesh.normals.emplace_back(glm::vec3(0.0f, -1.0f, 0.0f));
+	mesh.normals.emplace_back(glm::vec3(0.0f, -1.0f, 0.0f));
 
 	// Left face
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(front_bottom_left, glm::vec3(-1.0f, 0.0f, 0.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(front_top_left, glm::vec3(-1.0f, 0.0f, 0.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(back_bottom_left, glm::vec3(-1.0f, 0.0f, 0.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(back_top_left, glm::vec3(-1.0f, 0.0f, 0.0f)));
+	mesh.vertices.emplace_back(front_bottom_left);
+	mesh.vertices.emplace_back(front_top_left);
+	mesh.vertices.emplace_back(back_bottom_left);
+	mesh.vertices.emplace_back(back_top_left);
+
+	mesh.normals.emplace_back(glm::vec3(-1.0f, 0.0f, 0.0f));
+	mesh.normals.emplace_back(glm::vec3(-1.0f, 0.0f, 0.0f));
+	mesh.normals.emplace_back(glm::vec3(-1.0f, 0.0f, 0.0f));
+	mesh.normals.emplace_back(glm::vec3(-1.0f, 0.0f, 0.0f));
 
 	// Right face
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(front_bottom_right, glm::vec3(1.0f, 0.0f, 0.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(front_top_right, glm::vec3(1.0f, 0.0f, 0.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(back_bottom_right, glm::vec3(1.0f, 0.0f, 0.0f)));
-	mesh.vertices.emplace_back(ES::Plugin::Object::Component::Vertex(back_top_right, glm::vec3(1.0f, 0.0f, 0.0f)));
+	mesh.vertices.emplace_back(front_bottom_right);
+	mesh.vertices.emplace_back(front_top_right);
+	mesh.vertices.emplace_back(back_bottom_right);
+	mesh.vertices.emplace_back(back_top_right);
+
+	mesh.normals.emplace_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	mesh.normals.emplace_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	mesh.normals.emplace_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	mesh.normals.emplace_back(glm::vec3(1.0f, 0.0f, 0.0f));
 
 	// Generate indices for triangle strips
 	mesh.indices.insert(mesh.indices.end(), {0, 1, 2, 1, 3, 2});
