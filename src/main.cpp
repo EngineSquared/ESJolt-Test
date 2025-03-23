@@ -309,8 +309,6 @@ int main(void)
 	core.RegisterSystem(InitSphereSystem{ sphere });
 	core.RegisterSystem(PrintSphereInfoSystem{ sphere });
 
-	core.RegisterSystem<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::LoadGLBuffer);
-
 	// Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance (it's pointless here because we only have 2 bodies).
 	// You should definitely not call this every frame or when e.g. streaming in a new level section as it is an expensive operation.
 	// Instead insert all new objects in batches instead of 1 at a time to keep the broad phase efficient.
