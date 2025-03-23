@@ -113,7 +113,7 @@ ES::Engine::Entity CreateSphere(ES::Engine::Core &core)
 
 	model.shaderName = "default";
 	model.materialName = "default";
-	model.meshName = "default";
+	model.meshName = "SphereDefault";
 
     ES::Plugin::Object::Component::Mesh mesh;
 
@@ -184,7 +184,7 @@ ES::Engine::Entity CreateFloor(ES::Engine::Core &core)
 
 	model.shaderName = "default";
 	model.materialName = "default";
-	model.meshName = "default";
+	model.meshName = "FloorDefault";
 
     ES::Plugin::Object::Component::Mesh mesh;
 
@@ -291,12 +291,10 @@ int main(void)
 {
     ES::Engine::Core core;
 
+	core.AddPlugins<ES::Plugin::Physics::Plugin>();
 	core.AddPlugins<ES::Plugin::OpenGL::Plugin>();
 
-	core.RegisterSystem<ES::Engine::Scheduler::Update>(ES::Plugin::Physics::System::RigidBodyRenderer);
     core.RegisterResource<Physics::Resource::PhysicsManager>(std::move(Physics::Resource::PhysicsManager()));
-
-	core.RegisterSystem<ES::Engine::Scheduler::Update>(ES::Plugin::Physics::System::PhysicsUpdate);
 
 	// Next we can create a rigid body to serve as the floor, we make a large box
 	ES::Engine::Entity floor = CreateFloor(core);
