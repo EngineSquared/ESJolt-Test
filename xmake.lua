@@ -5,7 +5,11 @@ set_languages("c++20")
 
 add_rules("mode.debug", "mode.release")
 
-includes("../EngineSquared/xmake.lua")
+if is_mode("debug") then
+    add_defines("ES_PHYSICS_DEBUG_RENDERERS")
+end
+
+includes("../../EngineSquared/xmake.lua")
 includes("../ESJolt/xmake.lua")
 
 -- add /W4 for windows

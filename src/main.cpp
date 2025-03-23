@@ -5,7 +5,6 @@
 #include "Startup.hpp"
 #include "Window.hpp"
 
-#define ES_PHYSICS_DEBUG_RENDERERS
 #include "JoltPhysics.hpp"
 #include "OpenGL.hpp"
 
