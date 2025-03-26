@@ -6,6 +6,7 @@
 #define ES_PHYSICS_DEBUG_RENDERERS
 #include "JoltPhysics.hpp"
 #include "OpenGL.hpp"
+#include "Window.hpp"
 
 #include <iostream>
 
@@ -93,45 +94,6 @@ bool SphereIsActive(ES::Engine::Core &core, const ES::Engine::Entity &sphereEnti
 	return bodyInterface.IsActive(rigidBody.body->GetID());
 }
 
-void SetupOpenGL(ES::Engine::Core &core)
-{
-	core.RegisterResource<OpenGL::Resource::Buttons>({});
-
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::InitGLFW);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::SetupGLFWHints);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::CreateGLFWWindow);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::LinkGLFWContextToGL);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::InitGLEW);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::CheckGLEWVersion);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::GLFWEnableVSync);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::SetupGLFWHints);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::LoadMaterialCache);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::LoadShaderManager);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::CreateCamera);
-    core.RegisterSystem<ES::Engine::Scheduler::Startup>(OpenGL::System::SetupShaderUniforms);
-
-    core.RunSystems();
-
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::UpdateKey);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::UpdatePosCursor);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::UpdateButton);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::SaveLastMousePos);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::UpdateMatrices);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::GLClearColor);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::GLClearDepth);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::GLEnableDepth);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::GLEnableCullFace);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::SetupCamera);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::SetupLights);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::RenderMeshes);
-
-	core.RegisterSystem<ES::Engine::Scheduler::Update>(ES::Plugin::Physics::System::RigidBodyRenderer);
-
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::SwapBuffers);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::PollEvents);
-    core.RegisterSystem<ES::Engine::Scheduler::Update>(OpenGL::System::MouseDragging);
-}
-
 ES::Engine::Entity CreateSphere(ES::Engine::Core &core)
 {
 	// Create the settings for the collision volume (the shape).
@@ -145,17 +107,15 @@ ES::Engine::Entity CreateSphere(ES::Engine::Core &core)
 	sphere.AddComponent<ES::Plugin::Object::Component::Transform>(core, ES::Plugin::Object::Component::Transform({0.0f, 30.0f, 0.0f}));
 	sphere.AddComponent<ES::Plugin::Physics::Component::RigidBody3D>(core, ES::Plugin::Physics::Component::RigidBody3D(sphere_shape_settings, EMotionType::Dynamic, Physics::Utils::Layers::MOVING));
 
-	// Add a mesh to it for rendering
-	OpenGL::Component::Model model;
+	sphere.AddComponent<ES::Plugin::OpenGL::Component::ShaderHandle>(core, ES::Plugin::OpenGL::Component::ShaderHandle("default"));
+    sphere.AddComponent<ES::Plugin::OpenGL::Component::MaterialHandle>(core, ES::Plugin::OpenGL::Component::MaterialHandle("default"));
+    sphere.AddComponent<ES::Plugin::OpenGL::Component::ModelHandle>(core, ES::Plugin::OpenGL::Component::ModelHandle("sphere"));
 
-	model.shaderName = "default";
-    model.materialName = "default";
+    Object::Component::Mesh mesh;
 
-    OpenGL::Utils::Mesh mesh;
-
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec<3, unsigned int>> triIndices;
+    // std::vector<glm::vec3> vertices;
+    // std::vector<glm::vec3> normals;
+    // std::vector<glm::vec<3, unsigned int>> triIndices;
 
 	// Generate a sphere
 	const int numSegments = 16;
@@ -176,8 +136,8 @@ ES::Engine::Entity CreateSphere(ES::Engine::Core &core)
 			float y = radius * cos(phi);
 			float z = radius * sin(phi) * sin(theta);
 
-			vertices.push_back(glm::vec3(x, y, z));
-			normals.push_back(glm::normalize(glm::vec3(x, y, z)));
+			mesh.vertices.push_back(glm::vec3(x, y, z));
+			mesh.normals.push_back(glm::normalize(glm::vec3(x, y, z)));
 		}
 	}
 
@@ -189,23 +149,19 @@ ES::Engine::Entity CreateSphere(ES::Engine::Core &core)
 			unsigned int i2 = (i + 1) * (numSegments + 1) + (j + 1);
 			unsigned int i3 = i * (numSegments + 1) + (j + 1);
 
-			// First triangle
-			triIndices.push_back(glm::uvec3(i0, i1, i2));
+			// // First triangle
+			mesh.indices.push_back(i0);
+			mesh.indices.push_back(i1);
+			mesh.indices.push_back(i2);
 
-			// Second triangle
-			triIndices.push_back(glm::uvec3(i0, i2, i3));
+			// // Second triangle
+			mesh.indices.push_back(i0);
+			mesh.indices.push_back(i1);
+			mesh.indices.push_back(i2);
 		}
 	}
 
-	mesh.vertices = vertices;
-    mesh.normals = normals;
-    mesh.triIndices = triIndices;
-    mesh.generateGlBuffers();
-
-    model.mesh = mesh;
-
-    // sphere.AddComponent<OpenGL::Component::Model>(core, model);
-	// commented to test renderer
+	sphere.AddComponent<ES::Plugin::Object::Component::Mesh>(core, mesh);
 
 	return sphere;
 }
@@ -227,16 +183,11 @@ ES::Engine::Entity CreateFloor(ES::Engine::Core &core)
 	floor.AddComponent<ES::Plugin::Physics::Component::RigidBody3D>(core, ES::Plugin::Physics::Component::RigidBody3D(floor_shape_settings, EMotionType::Static, Physics::Utils::Layers::NON_MOVING));
 
 	// Add a mesh to it for rendering
-	OpenGL::Component::Model model;
+	floor.AddComponent<ES::Plugin::OpenGL::Component::ShaderHandle>(core, ES::Plugin::OpenGL::Component::ShaderHandle("default"));
+    floor.AddComponent<ES::Plugin::OpenGL::Component::MaterialHandle>(core, ES::Plugin::OpenGL::Component::MaterialHandle("default"));
+    floor.AddComponent<ES::Plugin::OpenGL::Component::ModelHandle>(core, ES::Plugin::OpenGL::Component::ModelHandle("floor"));
 
-	model.shaderName = "default";
-    model.materialName = "default";
-
-    OpenGL::Utils::Mesh mesh;
-
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec<3, unsigned int>> triIndices;
+    Object::Component::Mesh mesh;
 
 	// Generate a box
 	const float width = floor_size.GetX();
@@ -254,98 +205,90 @@ ES::Engine::Entity CreateFloor(ES::Engine::Core &core)
 	const glm::vec3 back_top_right = glm::vec3(width, height, depth);
 
 	// Front face
-	vertices.push_back(front_bottom_left);
-	vertices.push_back(front_bottom_right);
-	vertices.push_back(front_top_left);
-	vertices.push_back(front_top_right);
+	mesh.vertices.push_back(front_bottom_left);
+	mesh.vertices.push_back(front_bottom_right);
+	mesh.vertices.push_back(front_top_left);
+	mesh.vertices.push_back(front_top_right);
 
-	normals.push_back(glm::vec3(0.0f, 0.0f, -1.0f));
-	normals.push_back(glm::vec3(0.0f, 0.0f, -1.0f));
-	normals.push_back(glm::vec3(0.0f, 0.0f, -1.0f));
-	normals.push_back(glm::vec3(0.0f, 0.0f, -1.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, 0.0f, -1.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, 0.0f, -1.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, 0.0f, -1.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, 0.0f, -1.0f));
 
 	// Back face
-	vertices.push_back(back_bottom_left);
-	vertices.push_back(back_bottom_right);
-	vertices.push_back(back_top_left);
-	vertices.push_back(back_top_right);
+	mesh.vertices.push_back(back_bottom_left);
+	mesh.vertices.push_back(back_bottom_right);
+	mesh.vertices.push_back(back_top_left);
+	mesh.vertices.push_back(back_top_right);
 
-	normals.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
-	normals.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
-	normals.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
-	normals.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
 
 	// Top face
-	vertices.push_back(front_top_left);
-	vertices.push_back(front_top_right);
-	vertices.push_back(back_top_left);
-	vertices.push_back(back_top_right);
+	mesh.vertices.push_back(front_top_left);
+	mesh.vertices.push_back(front_top_right);
+	mesh.vertices.push_back(back_top_left);
+	mesh.vertices.push_back(back_top_right);
 
-	normals.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
-	normals.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
-	normals.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
-	normals.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
 
 	// Bottom face
-	vertices.push_back(front_bottom_left);
-	vertices.push_back(front_bottom_right);
-	vertices.push_back(back_bottom_left);
-	vertices.push_back(back_bottom_right);
+	mesh.vertices.push_back(front_bottom_left);
+	mesh.vertices.push_back(front_bottom_right);
+	mesh.vertices.push_back(back_bottom_left);
+	mesh.vertices.push_back(back_bottom_right);
 
-	normals.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
-	normals.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
-	normals.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
-	normals.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
 
 	// Left face
-	vertices.push_back(front_bottom_left);
-	vertices.push_back(front_top_left);
-	vertices.push_back(back_bottom_left);
-	vertices.push_back(back_top_left);
+	mesh.vertices.push_back(front_bottom_left);
+	mesh.vertices.push_back(front_top_left);
+	mesh.vertices.push_back(back_bottom_left);
+	mesh.vertices.push_back(back_top_left);
 
-	normals.push_back(glm::vec3(-1.0f, 0.0f, 0.0f));
-	normals.push_back(glm::vec3(-1.0f, 0.0f, 0.0f));
-	normals.push_back(glm::vec3(-1.0f, 0.0f, 0.0f));
-	normals.push_back(glm::vec3(-1.0f, 0.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(-1.0f, 0.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(-1.0f, 0.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(-1.0f, 0.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(-1.0f, 0.0f, 0.0f));
 
 	// Right face
-	vertices.push_back(front_bottom_right);
-	vertices.push_back(front_top_right);
-	vertices.push_back(back_bottom_right);
-	vertices.push_back(back_top_right);
+	mesh.vertices.push_back(front_bottom_right);
+	mesh.vertices.push_back(front_top_right);
+	mesh.vertices.push_back(back_bottom_right);
+	mesh.vertices.push_back(back_top_right);
 
-	normals.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
-	normals.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
-	normals.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
-	normals.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	mesh.normals.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
 
 	// Generate indices for triangle strips
-	triIndices.push_back(glm::uvec3(0, 1, 2));
-	triIndices.push_back(glm::uvec3(1, 3, 2));
 
-	triIndices.push_back(glm::uvec3(4, 5, 6));
-	triIndices.push_back(glm::uvec3(5, 7, 6));
+	mesh.indices = {
+		0, 1, 2,
+		1, 3, 2,
+		4, 5, 6,
+		5, 7, 6,
+		8, 9, 10,
+		9, 11, 10,
+		12, 13, 14,
+		13, 15, 14,
+		16, 17, 18,
+		17, 19, 18,
+		20, 21, 22,
+		21, 23, 22,
+	};
 
-	triIndices.push_back(glm::uvec3(8, 9, 10));
-	triIndices.push_back(glm::uvec3(9, 11, 10));
 
-	triIndices.push_back(glm::uvec3(12, 13, 14));
-	triIndices.push_back(glm::uvec3(13, 15, 14));
-
-	triIndices.push_back(glm::uvec3(16, 17, 18));
-	triIndices.push_back(glm::uvec3(17, 19, 18));
-
-	triIndices.push_back(glm::uvec3(20, 21, 22));
-	triIndices.push_back(glm::uvec3(21, 23, 22));
-
-	mesh.vertices = vertices;
-    mesh.normals = normals;
-    mesh.triIndices = triIndices;
-    mesh.generateGlBuffers();
-
-    model.mesh = mesh;
-
-    // floor.AddComponent<OpenGL::Component::Model>(core, model);
+	floor.AddComponent<ES::Plugin::Object::Component::Mesh>(core, mesh);
 
 	return floor;
 }
@@ -354,7 +297,7 @@ int main(void)
 {
     ES::Engine::Core core;
 
-	SetupOpenGL(core);
+	core.AddPlugins<ES::Plugin::OpenGL::Plugin>();
 
     core.RegisterResource<Physics::Resource::PhysicsManager>(std::move(Physics::Resource::PhysicsManager()));
 
@@ -369,7 +312,7 @@ int main(void)
 	// Now that we know which entity is the sphere, we can create its linked system
 	// Note that this is for testing purposes only
 	core.RegisterSystem(InitSphereSystem{ sphere });
-	core.RegisterSystem(PrintSphereInfoSystem{ sphere });
+	// core.RegisterSystem(PrintSphereInfoSystem{ sphere });
 
 	// Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance (it's pointless here because we only have 2 bodies).
 	// You should definitely not call this every frame or when e.g. streaming in a new level section as it is an expensive operation.
@@ -378,11 +321,10 @@ int main(void)
 
 	// Now we're ready to simulate the body
 	core.GetResource<Physics::Resource::PhysicsManager>().SetCollisionSteps(10);
-	while (!glfwWindowShouldClose(core.GetResource<OpenGL::Resource::GLFWWindow>().window)) {
-        core.RunSystems();
-    }
+	
+	core.RunCore();
 
-    glfwDestroyWindow(core.GetResource<OpenGL::Resource::GLFWWindow>().window);
+    glfwDestroyWindow(core.GetResource<ES::Plugin::Window::Resource::Window>().GetGLFWWindow());
     glfwTerminate();
 
     return 0;
