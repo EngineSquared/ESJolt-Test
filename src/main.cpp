@@ -7,6 +7,7 @@
 #include "JoltPhysics.hpp"
 #include "OpenGL.hpp"
 #include "Window.hpp"
+#include "Camera.hpp"
 
 #include <iostream>
 
@@ -156,8 +157,8 @@ ES::Engine::Entity CreateSphere(ES::Engine::Core &core)
 
 			// // Second triangle
 			mesh.indices.push_back(i0);
-			mesh.indices.push_back(i1);
 			mesh.indices.push_back(i2);
+			mesh.indices.push_back(i3);
 		}
 	}
 
@@ -273,16 +274,22 @@ ES::Engine::Entity CreateFloor(ES::Engine::Core &core)
 	// Generate indices for triangle strips
 
 	mesh.indices = {
-		0, 1, 2,
-		1, 3, 2,
+		// Front
+		2, 1, 0,
+		2, 3, 1,
+		// Back
 		4, 5, 6,
 		5, 7, 6,
-		8, 9, 10,
-		9, 11, 10,
+		// Bottom
+		10, 9, 8,
+		10, 11, 9,
+		// Top
 		12, 13, 14,
 		13, 15, 14,
-		16, 17, 18,
-		17, 19, 18,
+		// Left
+		18, 17, 16,
+		18, 19, 17,
+		// Right
 		20, 21, 22,
 		21, 23, 22,
 	};
@@ -312,6 +319,10 @@ int main(void)
 	// Now that we know which entity is the sphere, we can create its linked system
 	// Note that this is for testing purposes only
 	core.RegisterSystem(InitSphereSystem{ sphere });
+
+	core.RegisterSystem<ES::Engine::Scheduler::Startup>([&](ES::Engine::Core &core) {
+		core.GetResource<ES::Plugin::OpenGL::Resource::Camera>().viewer.lookFrom(glm::vec3(0.0f, 5.0f, -10.0f));
+	});
 	// core.RegisterSystem(PrintSphereInfoSystem{ sphere });
 
 	// Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance (it's pointless here because we only have 2 bodies).
