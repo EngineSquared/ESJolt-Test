@@ -1,4 +1,4 @@
-add_requires("entt", "gtest", "glm >=1.0.1", "glfw >=3.4", "glew", "spdlog", "fmt", "joltphysics")
+add_requires("entt", "gtest", "glm >=1.0.1", "glfw >=3.4", "glew", "spdlog", "fmt", "stb", "joltphysics")
 
 set_project("JoltPhysics-Test")
 set_languages("c++20")
@@ -6,7 +6,6 @@ set_languages("c++20")
 add_rules("mode.debug", "mode.release")
 
 includes("../EngineSquared/xmake.lua")
-includes("../ESJolt/xmake.lua")
 
 -- add /W4 for windows
 if is_plat("windows") then
@@ -18,12 +17,10 @@ target("JoltPhysics-Test")
     set_default(true)
     add_deps("EngineSquared")
 
-    add_deps("JoltPhysics") -- This is the name of the ESJolt plugin target
-
     add_files("src/**.cpp")
     add_includedirs("$(projectdir)/src/")
 
-    add_packages("entt", "glm", "glfw", "glew", "spdlog", "fmt", "joltphysics")
+    add_packages("entt", "glm", "glfw", "glew", "spdlog", "fmt", "stb", "joltphysics")
 
     set_rundir("$(projectdir)")
 

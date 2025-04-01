@@ -27,73 +27,91 @@ using namespace JPH; // NOT RECOMMENDED
 using namespace JPH::literals;
 using namespace ES::Plugin;
 
-ES::Engine::Entity CreateSphere(ES::Engine::Core &core)
+ES::Engine::Entity CreateSphere(ES::Engine::Core &core, bool isSoftBody)
 {
-	// Create the settings for the collision volume (the shape).
-	// Note that for simple shapes (like boxes) you can also directly construct a BoxShape.
-	constexpr float radius = .5f;
+    constexpr float radius = 0.5f;
 
-	std::shared_ptr<SphereShapeSettings> sphere_shape_settings = std::make_shared<SphereShapeSettings>(radius);
-
-	// Create the shape
-	ES::Engine::Entity sphere = core.CreateEntity();
-	sphere.AddComponent<ES::Plugin::Object::Component::Transform>(core, glm::vec3(0.0f, 30.0f, 0.0f));
-	sphere.AddComponent<ES::Plugin::Physics::Component::RigidBody3D>(core, sphere_shape_settings, EMotionType::Dynamic, Physics::Utils::Layers::MOVING);
-
-	sphere.AddComponent<ES::Plugin::OpenGL::Component::ShaderHandle>(core, "default");
-    sphere.AddComponent<ES::Plugin::OpenGL::Component::MaterialHandle>(core, "default");
-    sphere.AddComponent<ES::Plugin::OpenGL::Component::ModelHandle>(core, "sphere");
-
+    // Create a more uniform geodesic sphere
     Object::Component::Mesh mesh;
-	{
-		// Generate a sphere
-		const int numSegments = 16;
-		const int numRings = 16;
 
-		// Generate vertices and normals
+    struct Triangle { int v0, v1, v2; };
+    std::vector<glm::vec3> vertices;
+    std::vector<Triangle> triangles;
 
-		const float pi = glm::pi<float>();
+    // Initial icosahedron vertices
+    const float t = (1.0f + sqrt(5.0f)) / 2.0f;
+    vertices = {
+        {-1,  t,  0}, {1,  t,  0}, {-1, -t,  0}, {1, -t,  0},
+        {0, -1,  t}, {0,  1,  t}, {0, -1, -t}, {0,  1, -t},
+        { t,  0, -1}, { t,  0,  1}, {-t,  0, -1}, {-t,  0,  1}
+    };
+    
+    // Normalize to sphere surface
+    for (auto& v : vertices) v = glm::normalize(v) * radius;
 
-		for (int i = 0; i <= numRings; ++i) {
-			float phi = pi * (static_cast<float>(i) / numRings); // Latitude angle from 0 to pi
+    // Initial faces
+    triangles = {
+        {0, 11, 5}, {0, 5, 1}, {0, 1, 7}, {0, 7, 10}, {0, 10, 11},
+        {1, 5, 9}, {5, 11, 4}, {11, 10, 2}, {10, 7, 6}, {7, 1, 8},
+        {3, 9, 4}, {3, 4, 2}, {3, 2, 6}, {3, 6, 8}, {3, 8, 9},
+        {4, 9, 5}, {2, 4, 11}, {6, 2, 10}, {8, 6, 7}, {9, 8, 1}
+    };
 
-			for (int j = 0; j <= numSegments; ++j) {
-				float theta = 2.0f * pi * (static_cast<float>(j) / numSegments); // Longitude angle from 0 to 2*pi
+    // Subdivide for higher resolution
+    std::unordered_map<uint64_t, int> midpoints;
+    auto midpoint = [&](int v1, int v2) -> int {
+        uint64_t key = (uint64_t)std::min(v1, v2) << 32 | std::max(v1, v2);
+        if (midpoints.count(key)) return midpoints[key];
+        glm::vec3 mid = glm::normalize(vertices[v1] + vertices[v2]) * radius;
+        int index = vertices.size();
+        vertices.push_back(mid);
+        midpoints[key] = index;
+        return index;
+    };
 
-				// Spherical coordinates
-				float x = radius * sin(phi) * cos(theta);
-				float y = radius * cos(phi);
-				float z = radius * sin(phi) * sin(theta);
+    for (int i = 0; i < 2; ++i) { // 2 levels of subdivision
+        std::vector<Triangle> newTriangles;
+        for (auto& tri : triangles) {
+            int a = midpoint(tri.v0, tri.v1);
+            int b = midpoint(tri.v1, tri.v2);
+            int c = midpoint(tri.v2, tri.v0);
+            newTriangles.push_back({tri.v0, a, c});
+            newTriangles.push_back({tri.v1, b, a});
+            newTriangles.push_back({tri.v2, c, b});
+            newTriangles.push_back({a, b, c});
+        }
+        triangles = newTriangles;
+    }
 
-				mesh.vertices.push_back(glm::vec3(x, y, z));
-				mesh.normals.push_back(glm::normalize(glm::vec3(x, y, z)));
-			}
-		}
+    // Convert to mesh format
+    for (auto& v : vertices) {
+        mesh.vertices.push_back(v);
+        mesh.normals.push_back(glm::normalize(v));
+    }
+    for (auto& tri : triangles) {
+        mesh.indices.push_back(tri.v0);
+        mesh.indices.push_back(tri.v1);
+        mesh.indices.push_back(tri.v2);
+    }
 
-		// Generate indices for triangle strips
-		for (int i = 0; i < numRings; ++i) {
-			for (int j = 0; j < numSegments; ++j) {
-				unsigned int i0 = i * (numSegments + 1) + j;
-				unsigned int i1 = (i + 1) * (numSegments + 1) + j;
-				unsigned int i2 = (i + 1) * (numSegments + 1) + (j + 1);
-				unsigned int i3 = i * (numSegments + 1) + (j + 1);
+    // Create entity
+    ES::Engine::Entity sphere = core.CreateEntity();
+    sphere.AddComponent<ES::Plugin::OpenGL::Component::ShaderHandle>(core, "default");
+    sphere.AddComponent<ES::Plugin::OpenGL::Component::MaterialHandle>(core, "default");
+    sphere.AddComponent<ES::Plugin::Object::Component::Mesh>(core, mesh);
 
-				// // First triangle
-				mesh.indices.push_back(i0);
-				mesh.indices.push_back(i1);
-				mesh.indices.push_back(i2);
+    if (isSoftBody) {
+        sphere.AddComponent<ES::Plugin::Object::Component::Transform>(core, glm::vec3(-7.0f, 6.0f, 0.0f));
+        sphere.AddComponent<ES::Plugin::Physics::Component::SoftBody3D>(core);
+        sphere.AddComponent<ES::Plugin::OpenGL::Component::ModelHandle>(core, "softSphere");
+    } else {
+        auto sphere_shape_settings = std::make_shared<SphereShapeSettings>(radius);
+        sphere.AddComponent<ES::Plugin::Object::Component::Transform>(core, glm::vec3(7.0f, 30.0f, 0.0f));
+        sphere.AddComponent<ES::Plugin::Physics::Component::RigidBody3D>(core, sphere_shape_settings, EMotionType::Dynamic, Physics::Utils::Layers::MOVING);
+        sphere.AddComponent<ES::Plugin::OpenGL::Component::ModelHandle>(core, "rigidSphere");
+    }
 
-				// // Second triangle
-				mesh.indices.push_back(i0);
-				mesh.indices.push_back(i2);
-				mesh.indices.push_back(i3);
-			}
-		}
-	}
-
-	sphere.AddComponent<ES::Plugin::Object::Component::Mesh>(core, mesh);
-
-	return sphere;
+    return sphere;
 }
 
 ES::Engine::Entity CreateFloor(ES::Engine::Core &core)
@@ -235,7 +253,9 @@ void Setup(ES::Engine::Core &core)
 	ES::Engine::Entity floor = CreateFloor(core);
 
 	// Now create a dynamic body to bounce on the floor
-	ES::Engine::Entity sphere = CreateSphere(core);
+	ES::Engine::Entity rigidSphere = CreateSphere(core, false);
+
+	ES::Engine::Entity softSphere = CreateSphere(core, true);
 
 	// Now that we know which entity is the sphere, we can create its linked system
 	// Note that this is for testing purposes only
