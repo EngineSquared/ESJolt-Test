@@ -251,6 +251,21 @@ void Setup(ES::Engine::Core &core)
 
 	// Now we're ready to simulate the body
 	core.GetResource<Physics::Resource::PhysicsManager>().SetCollisionSteps(10);
+
+	ES::Engine::Entity ambient_light = core.CreateEntity();
+	ambient_light.AddComponent<OpenGL::Component::ShaderHandle>(core, "default");
+	ambient_light.AddComponent<Object::Component::Transform>(core, glm::vec3(0.0f), glm::vec3(1.0f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
+	ambient_light.AddComponent<OpenGL::Component::Light>(core, OpenGL::Component::Light::Type::AMBIENT, glm::vec3(0.0f, 0.8f, 0.8f));
+
+	std::array<std::string, 6> faces = {
+		"assets/right.jpg",
+		"assets/left.jpg",
+		"assets/top.jpg",
+		"assets/bottom.jpg",
+		"assets/front.jpg",
+		"assets/back.jpg"
+	};
+	ES::Plugin::OpenGL::Utils::CreateSkyBox(core, faces);
 }
 
 int main(void)
